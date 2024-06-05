@@ -13,8 +13,8 @@ void askApiForLedState();
 String SendHTML(bool);
 
 /* Put your SSID & Password */
-const char* ssid = "Homebox-Ivekovic";  // for AP mode use any ssid
-const char* password = "krunkrun22";  // for AP mode use any password
+const char* ssid = "Homebox-LukaDavid";  // for AP mode use any ssid
+const char* password = "ivekovic22";  // for AP mode use any password
 
 String apiName = "http://192.168.0.21:8080/demo/get";
 
