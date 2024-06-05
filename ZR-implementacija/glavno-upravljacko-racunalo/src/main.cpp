@@ -69,7 +69,28 @@ void setup() {
   pCharacteristic->setValue("Hello from ESP32 BLE Server");
   pService->start();
   BLEAdvertising *pAdvertising = pServer->getAdvertising();
-  pAdvertising->start();
+  pAdvertising->start(); // ova lajna baci error, ak ju zakomentiram onda nema errora, probal sam i BLEDevice::startAdvertising()
+  /* ovo je error koji baci -> brijem da je sve ovo do linije tu sam ok, ovo zadnje je samo greska
+  rst:0xc (SW_CPU_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+configsip: 188777542, SPIWP:0xee
+clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+mode:DIO, clock div:2
+load:0x3fff0030,len:1184
+load:0x40078000,len:13232
+load:0x40080400,len:3028
+entry 0x400805e4
+Connecting to Homebox-LukaDavid.E (3176) wifi:Set status to INIT
+.
+WiFi connected..!
+Got IP: 192.168.0.14
+Server started!
+tu sam
+
+Stack smashing protect failure!
+
+
+Backtrace: 0x400836c1:0x3ffe6710 0x40093d6d:0x3ffe6730 0x40082a7a:0x3ffe6750 0x401143d1:0x3ffe6770 0x40172929:0x3ffe67d0 0x4013a25f:0x3ffe67f0 0x4013e28d:0x3ffe6810 0x40138dbf:0x3ffe6830
+  */
 }
 
 void loop() {
