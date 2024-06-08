@@ -1,100 +1,83 @@
 #include <Arduino.h>
-#include <BLEDevice.h>
-#include <BLEUtils.h>
-#include <BLEScan.h>
-#include <BLEAdvertisedDevice.h>
-
-void changeLedState(char*);
-
-#define SERVICE_UUID        "cffc0a62-cadd-43b5-b1e3-faff06483314"
-#define CHARACTERISTIC_UUID "d7e5028b-7370-4cef-b44e-33b0dae524b7"
+#include <WiFi.h>
+#include <WebServer.h>
 
 #define LED_GREEN_PIN 14
 
-static BLERemoteCharacteristic* pRemoteCharacteristic;
-static BLEAdvertisedDevice* myDevice;
+void handleGate();
+boolean changeGateState(String data);
+void handleNotFound();
 
-static void notifyCallback(BLERemoteCharacteristic* pBLERemoteCharacteristic, uint8_t* pData, size_t length, bool isNotify) {
-  Serial.print("Received data to change LED state: ");
-  Serial.println((char*)pData);
+const char* ssid = "Homebox-LukaDavid";
+const char* password = "ivekovic22";
 
-  changeLedState((char*)pData);
-}
-
-class CustomClientCallbacks : public BLEClientCallbacks {
-  void onConnect(BLEClient* pclient) {
-    Serial.println("Connected via BLE!");
-  }
-  void onDisconnect(BLEClient* pclient) {
-    Serial.println("Disconnected, scanning for devices...");
-    BLEDevice::getScan()->start(0);
-  }
-};
-
-bool connectToServer() {
-  BLEClient* pClient = BLEDevice::createClient();
-  pClient->setClientCallbacks(new CustomClientCallbacks());
-
-  pClient->connect(myDevice);
-  BLERemoteService* pRemoteService = pClient->getService(SERVICE_UUID);
-  if (pRemoteService == nullptr) {
-    Serial.println("Failed to find service UUID");
-    pClient->disconnect();
-    return false;
-  }
-
-  pRemoteCharacteristic = pRemoteService->getCharacteristic(CHARACTERISTIC_UUID);
-  if (pRemoteCharacteristic == nullptr) {
-    Serial.println("Failed to find characteristic UUID");
-    pClient->disconnect();
-    return false;
-  }
-
-  if(pRemoteCharacteristic->canNotify())
-    pRemoteCharacteristic->registerForNotify(notifyCallback);
-
-  return true;
-}
-
-class CustomAdvertisedDeviceCallbacks: public BLEAdvertisedDeviceCallbacks {
-  void onResult(BLEAdvertisedDevice advertisedDevice) {
-    if (advertisedDevice.haveServiceUUID() && advertisedDevice.isAdvertisingService(BLEUUID(SERVICE_UUID))) {
-      BLEDevice::getScan()->stop();
-      myDevice = new BLEAdvertisedDevice(advertisedDevice);
-      connectToServer();
-    }
-  }
-};
+WebServer webServer(80);
 
 void setup() {
   Serial.begin(115200);
+  delay(100);
 
   pinMode(LED_GREEN_PIN, OUTPUT);
 
-  BLEDevice::init("ESP32 upravljac rasvjetom");
-  BLEScan* pBLEScan = BLEDevice::getScan();
-  pBLEScan->setAdvertisedDeviceCallbacks(new CustomAdvertisedDeviceCallbacks());
-  pBLEScan->setInterval(1349);
-  pBLEScan->setWindow(449);
-  pBLEScan->setActiveScan(true);
-  pBLEScan->start(0);
+  Serial.print("Connecting to ");
+  Serial.print(ssid);
+
+  WiFi.begin(ssid, password);
+
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(1000);
+    Serial.print(".");
+  }
+
+  Serial.println("");
+  Serial.println("WiFi connected..!");
+  Serial.print("Got IP: ");  
+  Serial.println(WiFi.localIP());
+
+  webServer.on("/", HTTP_POST, handleGate);
+  webServer.onNotFound(handleNotFound);
+
+  webServer.begin();
+  Serial.println("Server started!");
 }
 
 void loop() {
-  if (pRemoteCharacteristic != nullptr) {
-    String value = "Hello from ESP32 BLE Client";
-    pRemoteCharacteristic->writeValue(value.c_str(), value.length());
-  }
-  delay(2000);
+  webServer.handleClient();
 }
 
-void changeLedState(char* data) {
-  if (strcmp(data, "lights-on") == 0) {
+void handleNotFound() {
+  webServer.send(404, "text/plain", "Not found");
+}
+
+void handleGate() {
+  Serial.println("Client sent request to change LED state!");
+  String data = webServer.arg("data");
+
+  Serial.print("Data received: ");
+  Serial.println(data);
+
+  boolean success = changeGateState(data);
+
+  if (success) {
+    webServer.send(200, "text/plain", "LED state changed");
+  } else {
+    webServer.send(400, "text/plain", "Invalid data received");
+  }
+}
+
+boolean changeGateState(String data) {
+  if (data.equals("lights-on")) {
     Serial.println("Turning LED ON");
     digitalWrite(LED_GREEN_PIN, HIGH);
+    return true;
 
-  } else if (strcmp(data, "lights-off") == 0) {
+  } else if (data.equals("lights-off")) {
     Serial.println("Turning LED OFF");
     digitalWrite(LED_GREEN_PIN, LOW);
+    return true;
+
+  } else {
+    Serial.println("Invalid data received");
+    return false;
   }
 }
