@@ -3,13 +3,13 @@
 #include <WebServer.h>
 #include <IRremote.h>
 
-void handleLed();
-void changeGateState(String data);
+void handleGate();
+void changeGateState(String data, int manualIndicator);
 void returnResponse(int statusCode, String message);
 void handleNotFound();
-void moveGate(int moveGateDirection);
+void moveGate(int moveGateDirection, int manualIndicator);
 void stopGateObstacle();
-void openGate();
+void openGate(int manualIndicator);
 void closeGate();
 void blinkLed(int blinkLedPin);
 void gateSuccessfulStop(int blinkLed);
@@ -33,11 +33,11 @@ void setup() {
   Serial.begin(115200);
   delay(100);
 
-  // pinMode(LED_GREEN_PIN, OUTPUT);
-  // pinMode(LED_RED_PIN, OUTPUT);
-  // pinMode(LED_YELLOW_OPEN_PIN, OUTPUT);
-  // pinMode(LED_YELLOW_CLOSE_PIN, OUTPUT);
-  // pinMode(TRACKING_SENSOR_PIN, INPUT);
+  pinMode(LED_GREEN_PIN, OUTPUT);
+  pinMode(LED_RED_PIN, OUTPUT);
+  pinMode(LED_YELLOW_OPEN_PIN, OUTPUT);
+  pinMode(LED_YELLOW_CLOSE_PIN, OUTPUT);
+  pinMode(TRACKING_SENSOR_PIN, INPUT);
 
   Serial.print("Connecting to ");
   Serial.print(ssid);
@@ -54,7 +54,7 @@ void setup() {
   Serial.print("Got IP: ");  
   Serial.println(WiFi.localIP());
 
-  webServer.on("/", HTTP_POST, handleLed);
+  webServer.on("/", HTTP_POST, handleGate);
   webServer.onNotFound(handleNotFound);
 
   webServer.begin();
@@ -79,6 +79,9 @@ int gatePreviousDirection = -1;  // 1 -> gate opening, 0 -> gate not moving, -1 
 int buttonObstacleState;
 
 boolean gateStoppedOnObstacle = false;
+boolean closeAutomatically = false;
+
+int delayStayOpen = 5000; // 5 seconds
 
 decode_results irReceiverValue;
 int trackerSensonValue;
@@ -86,9 +89,38 @@ int trackerSensonValue;
 void loop() {
   webServer.handleClient();
 
+  if (closeAutomatically == true) {
+    if (gateDirection != 0) {
+      int blinkLedPin = LED_YELLOW_OPEN_PIN;
+
+      if (blinkingTime < openingTime) {
+        blinkLed(blinkLedPin);
+        blinkingTime += delayMilliseconds;
+
+      } else {
+        gateSuccessfulStop(blinkLedPin);
+      }
+
+      delay(delayMilliseconds);
+      return;
+    }
+
+    delay(delayStayOpen);
+
+    trackerSensonValue = digitalRead(TRACKING_SENSOR_PIN);
+
+    if (trackerSensonValue == LOW) {
+      moveGate(-1, 1);
+      closeAutomatically = false;
+
+    } else {
+      return;
+    }
+  }
+
   int moveGateDirection = -2;
 
-  if (irrecv.decode(&irReceiverValue)) { // TODO use not deprecated function
+  if (irrecv.decode(&irReceiverValue)) { // TODO change with non depracted function
     Serial.println(irReceiverValue.value, HEX);
 
     switch (irReceiverValue.value) {
@@ -116,7 +148,7 @@ void loop() {
     digitalWrite(LED_RED_PIN, LOW);
 
     if (moveGateDirection != gateDirection) {
-      moveGate(moveGateDirection); // prevent from consecutive button presses for the same direction
+      moveGate(moveGateDirection, 1); // prevent from consecutive button presses for the same direction
     }
 
   } else {
@@ -138,7 +170,7 @@ void loop() {
     }
   }
 
-  if (trackerSensonValue == HIGH) {
+  if (trackerSensonValue == HIGH && gateDirection == -1) { // detect obsticles only on closing
     stopGateObstacle();
   }
 
@@ -149,17 +181,20 @@ void handleNotFound() {
   webServer.send(404, "text/plain", "Not found");
 }
 
-void handleLed() {
+void handleGate() {
   Serial.println("Client sent request to change gate state!");
   String data = webServer.arg("data");
+  int manual = webServer.arg("manual").toInt();
 
   Serial.print("Data received: ");
   Serial.println(data);
+  Serial.print("Manual: ");
+  Serial.println(manual);
 
-  changeGateState(data);
+  changeGateState(data, manual);
 }
 
-void changeGateState(String data) {
+void changeGateState(String data, int manualIndicator) {
   int moveGateDirection = data.equals("gate-open") ? 1 : (data.equals("gate-close") ? -1 : 0);
 
   if (moveGateDirection == 0) {
@@ -168,13 +203,18 @@ void changeGateState(String data) {
     return;
   }
 
-  if (gateDirection != moveGateDirection) {
-    moveGate(moveGateDirection);
-    returnResponse(200, "Gate is moving!"); 
+  if (manualIndicator == 0) { // moveGateDirection always -1 when isn't manual
+    moveGate(moveGateDirection, manualIndicator);
 
   } else {
-    Serial.println("Gate is already moving in that direction!");
-    returnResponse(200, "Gate is already moving in that direction!");
+    if (gateDirection != moveGateDirection) {
+      moveGate(moveGateDirection, manualIndicator);
+      returnResponse(200, "Gate is moving!"); 
+
+    } else {
+      Serial.println("Gate is already moving in that direction!");
+      returnResponse(200, "Gate is already moving in that direction!");
+    }
   }
 }
 
@@ -182,11 +222,11 @@ void returnResponse(int statusCode, String message) {
   webServer.send(statusCode, "text/plain", message);
 }
 
-void moveGate(int moveGateDirection) {
+void moveGate(int moveGateDirection, int manualIndicator) {
   int previousState = gateDirection;  // variable to remember gateDirection
 
   if (moveGateDirection == 1) {
-    openGate();
+    openGate(manualIndicator);
 
   } else if (moveGateDirection == -1) {
     closeGate();
@@ -207,7 +247,7 @@ void moveGate(int moveGateDirection) {
 }
 
 
-void openGate(){
+void openGate(int manualIndicator){
   if (gatePreviousDirection == 1 && blinkingTime == 0) {
     Serial.println("Gate already open!");
     return;
@@ -221,6 +261,10 @@ void openGate(){
   gatePreviousDirection = gateDirection;
   gateDirection = 1;
   Serial.println("Opening the gate...");
+
+  if (manualIndicator == 0) {
+    closeAutomatically = true;
+  }
 }
 
 void closeGate(){
