@@ -1,15 +1,34 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include <WebServer.h>
+// ----------- CODE FOR HUMIDITY SENSOR IF HARDWARE AVAILABLE -----------
+// #include <DHT.h>
+// #define DHTPIN 2 
+// #define DHTTYPE DHT22 
+// ----------- CODE FOR HUMIDITY SENSOR IF HARDWARE AVAILABLE -----------
 
-void handleGate();
-boolean changeGateState(String data);
+// prskalice upaljene - lampica
+// senzor vlage - simulirano sklopkom -> sklopka pritisnuta - dovoljno vlazno, sklopka nije pritisnuta - suho
+#define LED_GREEN_PIN 14
+#define MOISTURE_SENSOR_PIN 34
+
+void handlePrskalice();
+void turnOnSprinkles(String data, int sprinklesDuration);
 void handleNotFound();
+void returnResponse(int statusCode, String message);
 
 const char* ssid = "Homebox-LukaDavid";
 const char* password = "ivekovic22";
 
 WebServer webServer(80);
+
+// ----------- CODE FOR HUMIDITY SENSOR IF HARDWARE AVAILABLE -----------
+// DHT dht(DHTPIN, DHTTYPE);
+// ----------- CODE FOR HUMIDITY SENSOR IF HARDWARE AVAILABLE -----------
+
+unsigned long startTime = 0;
+long interval = 5;
+boolean turnOffSprinklesAfterDuration = false;
 
 void setup() {
   Serial.begin(115200);
@@ -30,37 +49,86 @@ void setup() {
   Serial.print("Got IP: ");  
   Serial.println(WiFi.localIP());
 
-  webServer.on("/", HTTP_POST, handleGate);
+  webServer.on("/", HTTP_POST, handlePrskalice);
   webServer.onNotFound(handleNotFound);
 
   webServer.begin();
   Serial.println("Server started!");
+
+  // ----------- CODE FOR HUMIDITY SENSOR IF HARDWARE AVAILABLE -----------
+  // dht.begin();
+  // ----------- CODE FOR HUMIDITY SENSOR IF HARDWARE AVAILABLE -----------
 }
 
 void loop() {
   webServer.handleClient();
+
+  if (turnOffSprinklesAfterDuration) {
+    if (millis() - startTime >= interval) {
+      Serial.println("Turning off Sprinkles after duration!");
+      digitalWrite(LED_GREEN_PIN, LOW);
+      turnOffSprinklesAfterDuration = false;
+    }
+  }
 }
 
 void handleNotFound() {
   webServer.send(404, "text/plain", "Not found");
 }
 
-void handleGate() {
+void handlePrskalice() {
   Serial.println("Client sent request to change sprinkles state!");
   String data = webServer.arg("data");
+  int sprinklesDuration = webServer.arg("duration").toInt();
 
   Serial.print("Data received: ");
   Serial.println(data);
+  Serial.print("Duration received: ");
+  Serial.println(sprinklesDuration);
 
-  boolean success = changeGateState(data);
-
-  if (success) {
-    webServer.send(200, "text/plain", "Sprinkles state changed");
-  } else {
-    webServer.send(400, "text/plain", "Invalid data received");
-  }
+  turnOnSprinkles(data, sprinklesDuration);
 }
 
-boolean changeGateState(String data) {
-  return true;
+void turnOnSprinkles(String data, int sprinklesDuration) {
+  int newSprinklesState = data.equals("sprinkles-on") ? HIGH : -1;
+
+  if (newSprinklesState == -1) {
+    Serial.println("Invalid data received");
+    returnResponse(400, "Invalid data received");
+    return;
+  }
+
+  // ----------- CODE FOR HUMIDITY SENSOR IF HARDWARE AVAILABLE -----------
+  // float h = dht.readHumidity();
+  // if (isnan(h)) {
+  //   Serial.println("Failed to read from DHT sensor!");
+  //   h = 0;
+  // }
+  // if (h > 80) {
+  //   Serial.println("Too much moisture detected, sprinkles will not turn on");
+  //   returnResponse(200, "Too much moisture detected, sprinkles will not turn on");
+  //   return;
+  // }
+  // ----------- CODE FOR HUMIDITY SENSOR IF HARDWARE AVAILABLE -----------
+
+  int moistureSensorValue = digitalRead(MOISTURE_SENSOR_PIN);
+
+  if (moistureSensorValue == HIGH) {
+    Serial.println("Too much moisture detected, sprinkles will not turn on");
+    returnResponse(200, "Too much moisture detected, sprinkles will not turn on");
+    return;
+  }
+
+  Serial.println("Sprinkles turning ON...");
+  digitalWrite(LED_GREEN_PIN, newSprinklesState);
+
+  returnResponse(200, "Sprinkles state changed!");
+
+  turnOffSprinklesAfterDuration = true;
+  interval = sprinklesDuration * 60000;
+  startTime = millis();
+}
+
+void returnResponse(int statusCode, String message) {
+  webServer.send(statusCode, "text/plain", message);
 }

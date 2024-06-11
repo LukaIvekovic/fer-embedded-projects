@@ -8,6 +8,7 @@ void handleOnConnect();
 void handleNotFound();
 void handleLightsOn();
 void handleLightsOff();
+void handleSprinklersOn();
 String sendHTML();
 
 const char* ssid = "Homebox-LukaDavid";
@@ -42,6 +43,7 @@ void setup() {
   webServer.on("/", handleOnConnect);
   webServer.on("/lights-on", handleLightsOn);
   webServer.on("/lights-off", handleLightsOff);
+  webServer.on("/sprinklers-on", handleSprinklersOn);
   webServer.onNotFound(handleNotFound);
 
   webServer.begin();
@@ -64,7 +66,7 @@ void handleNotFound() {
 void handleLightsOn() {
   Serial.println("Lights turning on...");
 
-  String value = "data=lights-on";
+  String value = "data=lights-on&manual=1&duration=0";
 
   callApi(upravljacRasvjetomApi, value);
   webServer.send(200, "text/html", sendHTML());
@@ -73,9 +75,18 @@ void handleLightsOn() {
 void handleLightsOff() {
   Serial.println("Lights turning off...");
 
-  String value = "data=lights-off";
+  String value = "data=lights-off&manual=1&duration=0";
 
   callApi(upravljacRasvjetomApi, value);
+  webServer.send(200, "text/html", sendHTML());
+}
+
+void handleSprinklesOn() {
+  Serial.println("Sprinklers turning on...");
+
+  String value = "data=sprinklers-on&duration=5";
+
+  callApi(upravljacPrskalicaApi, value);
   webServer.send(200, "text/html", sendHTML());
 }
 
@@ -119,7 +130,7 @@ String sendHTML(){
   ptr +="<h1>Control Panel</h1>\n";
   ptr +="<a class=\"button\" href=\"/lights-on\">Turn Lights On</a>\n";
   ptr +="<a class=\"button\" href=\"/lights-off\">Turn Lights Off</a>\n";
-  ptr +="<a class=\"button\" href=\"/sprinklers-on\">Turn Sprinklers On</a>\n";
+  ptr +="<a class=\"button\" href=\"/sprinklers-on\">Turn Sprinklers On</a>\n"; // TODO add sprinklers duration
   ptr +="<a class=\"button\" href=\"/toggle-gate\">Open/Close the Gate</a>\n";
   ptr +="</body>\n";
   ptr +="</html>\n";
