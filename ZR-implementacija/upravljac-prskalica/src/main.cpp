@@ -29,6 +29,10 @@ WebServer webServer(80);
 unsigned long startTime = 0;
 long interval = 5;
 boolean turnOffSprinklesAfterDuration = false;
+int savedSprinklesDuration = 5;
+
+int checkHumidityAfter = 30 * 60000; // 30 minutes
+int lastHumidityCheck = 0;
 
 void setup() {
   Serial.begin(115200);
@@ -70,6 +74,28 @@ void loop() {
       turnOffSprinklesAfterDuration = false;
     }
   }
+
+  // ----------- CODE FOR HUMIDITY SENSOR IF HARDWARE AVAILABLE -----------
+  // if (millis() - lastHumidityCheck >= checkHumidityAfter) {
+  //   lastHumidityCheck = millis();
+  //   float h = dht.readHumidity();
+  //   if (isnan(h)) {
+  //     Serial.println("Failed to read from DHT sensor!");
+  //   }
+  //
+  //   Serial.print("Humidity: ");
+  //   Serial.println(h);
+  //
+  //   if (h < 20 && !isnan(h)) {
+  //      Serial.println("Too low humidity detected, turning on sprinkles");
+  //      digitalWrite(LED_GREEN_PIN, HIGH);
+  //
+  //      turnOffSprinklesAfterDuration = true;
+  //      interval = savedSprinklesDuration * 60000;
+  //      startTime = millis();
+  //   }
+  // }
+  // ----------- CODE FOR HUMIDITY SENSOR IF HARDWARE AVAILABLE -----------
 }
 
 void handleNotFound() {
@@ -127,6 +153,8 @@ void turnOnSprinkles(String data, int sprinklesDuration) {
   turnOffSprinklesAfterDuration = true;
   interval = sprinklesDuration * 60000;
   startTime = millis();
+
+  savedSprinklesDuration = sprinklesDuration;
 }
 
 void returnResponse(int statusCode, String message) {
