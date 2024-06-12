@@ -15,16 +15,16 @@ void blinkLed(int blinkLedPin);
 void gateSuccessfulStop(int blinkLed);
 void turnOffAllLeds();
 
-#define LED_GREEN_PIN 7
-#define LED_RED_PIN 6
-#define LED_YELLOW_OPEN_PIN 5
-#define LED_YELLOW_CLOSE_PIN 4
+#define LED_GREEN_PIN 32
+#define LED_RED_PIN 13
+#define LED_YELLOW_OPEN_PIN 33
+#define LED_YELLOW_CLOSE_PIN 12
 
 #define IR_RECEIVER_PIN 36
-#define TRACKING_SENSOR_PIN 3
+#define TRACKING_SENSOR_PIN 37
 
-const char* ssid = "Homebox-LukaDavid";
-const char* password = "ivekovic22";
+const char* ssid = "Homebox-Ivekovic";
+const char* password = "krunkrun22";
 
 WebServer webServer(80);
 IRrecv irrecv(IR_RECEIVER_PIN);
@@ -161,6 +161,8 @@ void loop() {
 
       } else {
         gateSuccessfulStop(blinkLedPin);
+
+        digitalWrite(LED_GREEN_PIN, LOW);
       }
     } else if (gateStoppedOnObstacle == true) {
       blinkLed(LED_RED_PIN);
@@ -239,10 +241,10 @@ void moveGate(int moveGateDirection, int manualIndicator) {
     }
 
     digitalWrite(LED_RED_PIN, HIGH);
+    gateDirection = 0;
     Serial.println("Stopping the gate...");
   }
 
-  gateDirection = moveGateDirection;
   gatePreviousDirection = previousState;
 }
 

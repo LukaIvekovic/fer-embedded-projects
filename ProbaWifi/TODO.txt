@@ -3,9 +3,9 @@
 3. napraviti inicijalnu implementaciju mikrokontrolera s rasvjetom s jednom lampicom --
 4. napraviti inicijalnu implementaciju mikrokontrolera za prskalice s lampicom (pali/gasi prskalice) --
 5. napraviti inicijalnu implementaciju mikrokontrolera za ogradu --
-6. sloziti strujne krugove i probati
+6. sloziti strujne krugove i probati --
 6. u implementaciju mikrokontrolera s ogradom dodati IR senzor --
-7. povezati da rade sa scenarijima
+7. povezati da rade sa scenarijima --
 8. dodati potrebne senzore u mikrokontroler s rasvjetom --
 9. dodati potrebne senzore u mikrokontroler s prskalicama --
 10. dodati potrebne senzore u mikrokontroler s ogradom --

@@ -17,12 +17,12 @@ void handleOpenGate();
 void handleCloseGate();
 String sendHTML();
 
-const char* ssid = "Homebox-LukaDavid";
-const char* password = "ivekovic22";
+const char* ssid = "Homebox-Ivekovic";
+const char* password = "krunkrun22";
 
 String upravljacPrskalicaApi = "http://192.168.0.16:80/";
-String upravljacOgradomApi = "http://192.168.0.15:80/";
-String upravljacRasvjetomApi = "http://192.168.0.13:80/";
+String upravljacOgradomApi = "http://192.168.0.26:80/";
+String upravljacRasvjetomApi = "http://192.168.0.23:80/";
 
 int lightsDuration = 5;
 int sprinklesDuration = 5;
@@ -71,7 +71,7 @@ void loop() {
   webServer.handleClient();
 
   if (alertSprinklesAfterLightsOff) {
-    if (millis() - lightsStartTime >= lightsDuration * 60000) {
+    if (millis() - lightsStartTime >= lightsDuration * 1000) {
       handleSprinklesOnManual();
       alertSprinklesAfterLightsOff = false;
     }
@@ -164,7 +164,7 @@ void handleSprinklesOnManual() {
 void handleOpenGate() {
   Serial.println("Gate opening...");
 
-  String value = "data=open-gate&manual=1";
+  String value = "data=gate-open&manual=1";
 
   callApi(upravljacOgradomApi, value);
   webServer.send(200, "text/html", sendHTML());
@@ -173,7 +173,7 @@ void handleOpenGate() {
 void handleCloseGate() {
   Serial.println("Gate closing...");
 
-  String value = "data=close-gate&manual=1";
+  String value = "data=gate-close&manual=1";
 
   callApi(upravljacOgradomApi, value);
   webServer.send(200, "text/html", sendHTML());
@@ -203,35 +203,45 @@ void callApi(String api, String value) {
 }
 
 String sendHTML(){
-  String ptr = "<!DOCTYPE html> <html>\n";
-  ptr +="<head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, user-scalable=no\">\n";
-  ptr +="<title>Smart Home Controls</title>\n";
-  ptr +="<style>html { font-family: Helvetica; display: inline-block; margin: 0px auto; text-align: center;}\n";
-  ptr +="body{margin-top: 50px;} h1 {color: #444444;margin: 50px auto 30px;} h3 {color: #444444;margin-bottom: 50px;}\n";
-  ptr +=".button {display: block;width: 200px;background-color: #3498db;border: none;color: white;padding: 13px 30px;text-decoration: none;font-size: 25px;margin: 0px auto 35px;cursor: pointer;border-radius: 4px;}\n";
-  ptr +=".button:active {background-color: #2980b9;}\n";
-  ptr +="</style>\n";
-  ptr +="</head>\n";
-  ptr +="<body>\n";
-  ptr +="<h1>Smart Home Controls</h1>\n";
-  ptr +="<a class=\"button\" href=\"/enter-home\">Enter the Home</a>\n";
-  ptr +="<a class=\"button\" href=\"/exit-home\">Exit the Home</a>\n";
-  ptr +="<h1>Control Panel</h1>\n";
-  ptr +="<a class=\"button\" href=\"/lights-on\">Turn Lights On</a>\n";
-  ptr +="<a class=\"button\" href=\"/lights-off\">Turn Lights Off</a>\n";
-  ptr +="<a class=\"button\" href=\"/sprinklers-on\">Turn Sprinklers On</a>\n";
-  ptr +="<a class=\"button\" href=\"/open-gate\">Open the Gate</a>\n";
-  ptr +="<a class=\"button\" href=\"/close-gate\">Close the Gate</a>\n";
-  ptr +="<h1>Configuration</h1>\n";
-  ptr +="<form action=\"/set-durations\">\n";
-  ptr +="Lights Duration (seconds): <input type=\"number\" name=\"lightsDuration\" value=\"" + String(lightsDuration) + "\"><br>\n";
-  ptr +="<input type=\"submit\" value=\"Apply\">\n";
-  ptr +="</form><br>\n";
-  ptr +="<form action=\"/set-durations\">\n";  
-  ptr +="Sprinkles Duration (seconds): <input type=\"number\" name=\"sprinklesDuration\" value=\"" + String(sprinklesDuration) + "\"><br>\n";
-  ptr +="<input type=\"submit\" value=\"Apply\">\n";
-  ptr +="</form>\n";
-  ptr +="</body>\n";
-  ptr +="</html>\n";
-  return ptr;
+  String html = R"(
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+      <title>Smart Home Controls</title>
+      <style>
+        html { font-family: Helvetica; display: inline-block; margin: 10px 10px 100px 10px; text-align: center;}
+        body { margin-top: 50px; }
+        h1 { color: #444444; margin: 50px auto 30px; }
+        h3 { color: #444444; margin-bottom: 50px; }
+        .button { display: block; width: 200px; background-color: #3498db; border: none; color: white; padding: 13px 30px; text-decoration: none; font-size: 25px; margin: 0px auto 35px; cursor: pointer; border-radius: 4px; }
+        .button:active { background-color: #2980b9; }
+      </style>
+    </head>
+    <body>
+      <h1>Smart Home Controls</h1>
+      <a class="button" href="/enter-home">Enter the Home</a>
+      <a class="button" href="/exit-home">Exit the Home</a>
+      
+      <h1>Control Panel</h1>
+      <a class="button" href="/lights-on">Turn Lights On</a>
+      <a class="button" href="/lights-off">Turn Lights Off</a>
+      <a class="button" href="/sprinklers-on">Turn Sprinklers On</a>
+      <a class="button" href="/open-gate">Open the Gate</a>
+      <a class="button" href="/close-gate">Close the Gate</a>
+      
+      <h1>Configuration</h1>
+      <form action="/set-durations">
+        Lights Duration (seconds): <input type="number" name="lightsDuration" value=")" + String(lightsDuration) + R"(">
+        <input type="submit" value="Apply">
+      </form><br>
+      
+      <form action="/set-durations">  
+        Sprinkles Duration (seconds): <input type="number" name="sprinklesDuration" value=")" + String(sprinklesDuration) + R"(">
+        <input type="submit" value="Apply">
+      </form>
+    </body>
+    </html>
+    )";
+  return html;
 }

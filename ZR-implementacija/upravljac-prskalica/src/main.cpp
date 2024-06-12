@@ -31,7 +31,7 @@ long interval = 5;
 boolean turnOffSprinklesAfterDuration = false;
 int savedSprinklesDuration = 5;
 
-int checkHumidityAfter = 30 * 60000; // 30 minutes
+int checkHumidityAfter = 30 * 1000; // 30 seconds
 int lastHumidityCheck = 0;
 
 void setup() {
@@ -139,7 +139,7 @@ void turnOnSprinkles(String data, int sprinklesDuration) {
 
   int moistureSensorValue = digitalRead(MOISTURE_SENSOR_PIN);
 
-  if (moistureSensorValue == HIGH) {
+  if (moistureSensorValue == LOW) {
     Serial.println("Too much moisture detected, sprinkles will not turn on");
     returnResponse(200, "Too much moisture detected, sprinkles will not turn on");
     return;
@@ -151,7 +151,7 @@ void turnOnSprinkles(String data, int sprinklesDuration) {
   returnResponse(200, "Sprinkles state changed!");
 
   turnOffSprinklesAfterDuration = true;
-  interval = sprinklesDuration * 60000;
+  interval = sprinklesDuration * 1000;
   startTime = millis();
 
   savedSprinklesDuration = sprinklesDuration;

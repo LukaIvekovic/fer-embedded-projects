@@ -5,24 +5,25 @@
 // rasvjeta - lampica
 // senzor svijetla - simulirano sklopkom -> sklopka pritisnuta - svijetlo, sklopka nije pritisnuta - tamno
 
-#define LED_GREEN_PIN 14
-#define LIGHT_SENSOR_PIN 34
-#define BUTTON_TURN_ON 32
-#define BUTTON_TURN_OFF 33
+#define LED_GREEN_PIN 12
+#define LIGHT_SENSOR_PIN 13
+#define BUTTON_TURN_ON_OFF 36
 
 void handleLed();
 void changeLedState(String data, int manualIndicator, int lightsDuration);
 void handleNotFound();
 void returnResponse(int statusCode, String message);
 
-const char* ssid = "Homebox-LukaDavid";
-const char* password = "ivekovic22";
+const char* ssid = "Homebox-Ivekovic";
+const char* password = "krunkrun22";
 
 WebServer webServer(80);
 
 unsigned long startTime = 0;
 long interval = 5;
 boolean turnOffLedAfterDuration = false;
+int previousLightsState = 1;
+int currentLedState = 0;
 
 void setup() {
   Serial.begin(115200);
@@ -30,8 +31,7 @@ void setup() {
 
   pinMode(LED_GREEN_PIN, OUTPUT);
   pinMode(LIGHT_SENSOR_PIN, INPUT);
-  pinMode(BUTTON_TURN_ON, INPUT);
-  pinMode(BUTTON_TURN_OFF, INPUT);
+  pinMode(BUTTON_TURN_ON_OFF, INPUT);
 
   Serial.print("Connecting to ");
   Serial.print(ssid);
@@ -58,18 +58,20 @@ void setup() {
 void loop() {
   webServer.handleClient();
 
-  int turnOnButtonState = digitalRead(BUTTON_TURN_ON);
-  int turnOffButtonState = digitalRead(BUTTON_TURN_OFF);
+  int turnOnButtonState = digitalRead(BUTTON_TURN_ON_OFF);
 
   if (turnOnButtonState == LOW) {
-    Serial.println("Turning on LED manually!");
-    digitalWrite(LED_GREEN_PIN, HIGH);
-    turnOffLedAfterDuration = false;
-  }
+    Serial.println("Changing LED state manually!");
+    previousLightsState = currentLedState;
 
-  if (turnOffButtonState == LOW) {
-    Serial.println("Turning off LED manually!");
-    digitalWrite(LED_GREEN_PIN, LOW);
+    if (previousLightsState == 0) {
+      digitalWrite(LED_GREEN_PIN, HIGH);
+      currentLedState = 1;
+    } else {
+      digitalWrite(LED_GREEN_PIN, LOW);
+      currentLedState = 0;
+    }
+
     turnOffLedAfterDuration = false;
   }
 
@@ -78,8 +80,12 @@ void loop() {
       Serial.println("Turning off LED after duration!");
       digitalWrite(LED_GREEN_PIN, LOW);
       turnOffLedAfterDuration = false;
+      previousLightsState = currentLedState;
+      currentLedState = 0;
     }
   }
+  
+  delay(100);
 }
 
 void handleNotFound() {
@@ -120,7 +126,7 @@ void changeLedState(String data, int manualIndicator, int lightsDuration) {
 
     int lightSensorValue = digitalRead(LIGHT_SENSOR_PIN);
     
-    if (lightSensorValue == HIGH) {
+    if (lightSensorValue == LOW) {
       Serial.println("Light sensor detected light, no need to change LED state!");
       returnResponse(200, "Light sensor detected light, no need to change LED state!");
       return;
@@ -129,23 +135,31 @@ void changeLedState(String data, int manualIndicator, int lightsDuration) {
     if (newLedState == HIGH) { // turn on for lights duration
       Serial.println("Led state changing to: ON");
       digitalWrite(LED_GREEN_PIN, newLedState);
+      previousLightsState = currentLedState;
+      currentLedState = 1;
 
       returnResponse(200, "LED state changed!");
 
       turnOffLedAfterDuration = true;
-      interval = lightsDuration * 60000;
+      interval = lightsDuration * 1000;
       startTime = millis();
 
     } else {
       Serial.println("Led state changing to: OFF");
       digitalWrite(LED_GREEN_PIN, newLedState);
       returnResponse(200, "LED state changed!");
+
+      previousLightsState = currentLedState;
+      currentLedState = 1;
     }
 
   } else {
     Serial.println("Led state changing to: " + String(newLedState == HIGH ? "ON" : "OFF"));
     digitalWrite(LED_GREEN_PIN, newLedState);
     returnResponse(200, "LED state changed!");
+
+    previousLightsState = currentLedState;
+    currentLedState = newLedState;
   }
 }
 
