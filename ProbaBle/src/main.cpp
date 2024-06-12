@@ -30,6 +30,8 @@ class CustomServerCallbacks: public BLEServerCallbacks {
   }
 };
 
+WebServer webServer(80);
+
 void setup() {
   // Start serial communication 
   Serial.begin(115200);
@@ -72,7 +74,7 @@ void setup() {
   Serial.print("Got IP: ");  
   Serial.println(WiFi.localIP());
 
-  // when we add the webserver, program breaks
+  // webServer.begin(); when we add the webserver, program breaks
 }
 
 void loop() {
