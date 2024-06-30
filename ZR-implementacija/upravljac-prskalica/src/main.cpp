@@ -1,42 +1,37 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include <WebServer.h>
-// ----------- CODE FOR HUMIDITY SENSOR IF HARDWARE AVAILABLE -----------
-// #include <DHT.h>
-// #define DHTPIN 2 
-// #define DHTTYPE DHT22 
-// ----------- CODE FOR HUMIDITY SENSOR IF HARDWARE AVAILABLE -----------
 
-// prskalice upaljene - lampica
-// senzor vlage - simulirano sklopkom -> sklopka pritisnuta - dovoljno vlazno, sklopka nije pritisnuta - suho
-#define LED_GREEN_PIN 14
-#define MOISTURE_SENSOR_PIN 34
+#define LED_GREEN_PIN 12
+#define MOISTURE_SENSOR_PIN 36
 
 void handlePrskalice();
 void turnOnSprinkles(String data, int sprinklesDuration);
 void handleNotFound();
 void returnResponse(int statusCode, String message);
 
-const char* ssid = "Homebox-LukaDavid";
-const char* password = "ivekovic22";
+const char* ssid = "ESP32_WiFi";
+const char* password = "password123";
 
 WebServer webServer(80);
-
-// ----------- CODE FOR HUMIDITY SENSOR IF HARDWARE AVAILABLE -----------
-// DHT dht(DHTPIN, DHTTYPE);
-// ----------- CODE FOR HUMIDITY SENSOR IF HARDWARE AVAILABLE -----------
 
 unsigned long startTime = 0;
 long interval = 5;
 boolean turnOffSprinklesAfterDuration = false;
 int savedSprinklesDuration = 5;
 
-int checkHumidityAfter = 30 * 1000; // 30 seconds
+int checkHumidityAfter = 60 * 1000; // 30 seconds
 int lastHumidityCheck = 0;
+
+int HUMIDITY_TOO_LOW = 2450; //2559 je skroz suh
+int HUMIDITY_TOO_HIGH = 1050; //ide do 2000 i nize s jednom kapljicom 1000 je uronjen u vodu
 
 void setup() {
   Serial.begin(115200);
   delay(100);
+
+  pinMode(LED_GREEN_PIN, OUTPUT);
+  pinMode(MOISTURE_SENSOR_PIN, INPUT);
 
   Serial.print("Connecting to ");
   Serial.print(ssid);
@@ -58,10 +53,6 @@ void setup() {
 
   webServer.begin();
   Serial.println("Server started!");
-
-  // ----------- CODE FOR HUMIDITY SENSOR IF HARDWARE AVAILABLE -----------
-  // dht.begin();
-  // ----------- CODE FOR HUMIDITY SENSOR IF HARDWARE AVAILABLE -----------
 }
 
 void loop() {
@@ -75,27 +66,22 @@ void loop() {
     }
   }
 
-  // ----------- CODE FOR HUMIDITY SENSOR IF HARDWARE AVAILABLE -----------
-  // if (millis() - lastHumidityCheck >= checkHumidityAfter) {
-  //   lastHumidityCheck = millis();
-  //   float h = dht.readHumidity();
-  //   if (isnan(h)) {
-  //     Serial.println("Failed to read from DHT sensor!");
-  //   }
-  //
-  //   Serial.print("Humidity: ");
-  //   Serial.println(h);
-  //
-  //   if (h < 20 && !isnan(h)) {
-  //      Serial.println("Too low humidity detected, turning on sprinkles");
-  //      digitalWrite(LED_GREEN_PIN, HIGH);
-  //
-  //      turnOffSprinklesAfterDuration = true;
-  //      interval = savedSprinklesDuration * 60000;
-  //      startTime = millis();
-  //   }
-  // }
-  // ----------- CODE FOR HUMIDITY SENSOR IF HARDWARE AVAILABLE -----------
+  if (millis() - lastHumidityCheck >= checkHumidityAfter) {
+    lastHumidityCheck = millis();
+    int humidity = analogRead(MOISTURE_SENSOR_PIN);
+  
+    Serial.print("Humidity: ");
+    Serial.println(humidity);
+  
+    if (humidity > HUMIDITY_TOO_LOW) {
+      Serial.println("Too low humidity detected, turning on sprinkles");
+      digitalWrite(LED_GREEN_PIN, HIGH);
+  
+      turnOffSprinklesAfterDuration = true;
+      interval = savedSprinklesDuration * 1000;
+      startTime = millis();
+    }
+  }
 }
 
 void handleNotFound() {
@@ -116,7 +102,7 @@ void handlePrskalice() {
 }
 
 void turnOnSprinkles(String data, int sprinklesDuration) {
-  int newSprinklesState = data.equals("sprinkles-on") ? HIGH : -1;
+  int newSprinklesState = data.equals("sprinklers-on") ? HIGH : -1;
 
   if (newSprinklesState == -1) {
     Serial.println("Invalid data received");
@@ -124,22 +110,12 @@ void turnOnSprinkles(String data, int sprinklesDuration) {
     return;
   }
 
-  // ----------- CODE FOR HUMIDITY SENSOR IF HARDWARE AVAILABLE -----------
-  // float h = dht.readHumidity();
-  // if (isnan(h)) {
-  //   Serial.println("Failed to read from DHT sensor!");
-  //   h = 0;
-  // }
-  // if (h > 80) {
-  //   Serial.println("Too much moisture detected, sprinkles will not turn on");
-  //   returnResponse(200, "Too much moisture detected, sprinkles will not turn on");
-  //   return;
-  // }
-  // ----------- CODE FOR HUMIDITY SENSOR IF HARDWARE AVAILABLE -----------
+  int humidity = analogRead(MOISTURE_SENSOR_PIN);
+  
+  Serial.print("Humidity: ");
+  Serial.println(humidity);
 
-  int moistureSensorValue = digitalRead(MOISTURE_SENSOR_PIN);
-
-  if (moistureSensorValue == LOW) {
+  if (humidity < HUMIDITY_TOO_HIGH) {
     Serial.println("Too much moisture detected, sprinkles will not turn on");
     returnResponse(200, "Too much moisture detected, sprinkles will not turn on");
     return;

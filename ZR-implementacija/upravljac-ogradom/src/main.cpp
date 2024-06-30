@@ -23,8 +23,8 @@ void turnOffAllLeds();
 #define IR_RECEIVER_PIN 36
 #define TRACKING_SENSOR_PIN 37
 
-const char* ssid = "Homebox-Ivekovic";
-const char* password = "krunkrun22";
+const char* ssid = "ESP32_WiFi";
+const char* password = "password123";
 
 WebServer webServer(80);
 IRrecv irrecv(IR_RECEIVER_PIN);

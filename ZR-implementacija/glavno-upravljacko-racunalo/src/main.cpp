@@ -17,12 +17,15 @@ void handleOpenGate();
 void handleCloseGate();
 String sendHTML();
 
-const char* ssid = "Homebox-Ivekovic";
+const char* ap_ssid = "ESP32_WiFi"; // for AP mode
+const char* ap_password = "password123";
+
+const char* ssid = "Homebox-Ivekovic"; // for Station mode (home wifi)
 const char* password = "krunkrun22";
 
-String upravljacPrskalicaApi = "http://192.168.0.16:80/";
-String upravljacOgradomApi = "http://192.168.0.26:80/";
-String upravljacRasvjetomApi = "http://192.168.0.23:80/";
+String upravljacPrskalicaApi = "http://192.168.4.4:80/";
+String upravljacOgradomApi = "http://192.168.4.2:80/";
+String upravljacRasvjetomApi = "http://192.168.4.3:80/";
 
 int lightsDuration = 5;
 int sprinklesDuration = 5;
@@ -37,6 +40,14 @@ void setup() {
   Serial.begin(115200);
   delay(100);
 
+  WiFi.mode(WIFI_AP_STA);
+  WiFi.softAP(ap_ssid, ap_password);
+  delay(100);
+  Serial.println("Access Point started!");
+  Serial.print("AP IP address: ");
+  Serial.println(WiFi.softAPIP());
+  Serial.println();
+
   Serial.print("Connecting to ");
   Serial.print(ssid);
 
@@ -49,7 +60,7 @@ void setup() {
 
   Serial.println("");
   Serial.println("WiFi connected..!");
-  Serial.print("Got IP: ");
+  Serial.print("Home WiFi IP (web application IP available at): ");
   Serial.println(WiFi.localIP());
 
   webServer.on("/", handleOnConnect);
@@ -180,7 +191,7 @@ void handleCloseGate() {
 }
 
 void callApi(String api, String value) {
-  if (WiFi.status() == WL_CONNECTED) {
+  if (WiFi.status() == WL_CONNECTED || WiFi.softAPgetStationNum() > 0) {
     httpClient.begin(api);
     httpClient.addHeader("Content-Type", "application/x-www-form-urlencoded");
     int httpResponseCode = httpClient.POST(value);

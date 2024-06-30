@@ -2,11 +2,8 @@
 #include <WiFi.h>
 #include <WebServer.h>
 
-// rasvjeta - lampica
-// senzor svijetla - simulirano sklopkom -> sklopka pritisnuta - svijetlo, sklopka nije pritisnuta - tamno
-
 #define LED_GREEN_PIN 12
-#define LIGHT_SENSOR_PIN 13
+#define LIGHT_SENSOR_PIN 32
 #define BUTTON_TURN_ON_OFF 36
 
 void handleLed();
@@ -14,8 +11,8 @@ void changeLedState(String data, int manualIndicator, int lightsDuration);
 void handleNotFound();
 void returnResponse(int statusCode, String message);
 
-const char* ssid = "Homebox-Ivekovic";
-const char* password = "krunkrun22";
+const char* ssid = "ESP32_WiFi";
+const char* password = "password123";
 
 WebServer webServer(80);
 
@@ -118,15 +115,12 @@ void changeLedState(String data, int manualIndicator, int lightsDuration) {
   }
 
   if (manualIndicator == 0) {
-    // ----------- CODE FOR LIGHT SENSOR IF HARDWARE AVAILABLE -----------
-    // int lightLevel = analogRead(LIGHT_SENSOR_PIN);
-    // int light = map(lightLevel, 0, 1023, 0, 100);
-    // if (light > 50) { ... }
-    // ----------- CODE FOR LIGHT SENSOR IF HARDWARE AVAILABLE -----------
+    int lightLevel = analogRead(LIGHT_SENSOR_PIN);
+    Serial.print("Light sensor value: ");
+    Serial.println(lightLevel);
+    int light = map(lightLevel, 0, 1023, 0, 100);
 
-    int lightSensorValue = digitalRead(LIGHT_SENSOR_PIN);
-    
-    if (lightSensorValue == LOW) {
+    if (light > 50) { 
       Serial.println("Light sensor detected light, no need to change LED state!");
       returnResponse(200, "Light sensor detected light, no need to change LED state!");
       return;
