@@ -2,8 +2,9 @@
 #include <WiFi.h>
 #include <WebServer.h>
 
+// senzor svijetla - simulirano sklopkom -> sklopka pritisnuta - svijetlo, sklopka nije pritisnuta - tamno
 #define LED_GREEN_PIN 12
-#define LIGHT_SENSOR_PIN 32
+#define LIGHT_SENSOR_PIN 13
 #define BUTTON_TURN_ON_OFF 36
 
 void handleLed();
@@ -115,12 +116,15 @@ void changeLedState(String data, int manualIndicator, int lightsDuration) {
   }
 
   if (manualIndicator == 0) {
-    int lightLevel = analogRead(LIGHT_SENSOR_PIN);
-    Serial.print("Light sensor value: ");
-    Serial.println(lightLevel);
-    int light = map(lightLevel, 0, 1023, 0, 100);
+    // ----------- CODE FOR LIGHT SENSOR IF HARDWARE AVAILABLE -----------
+    // int lightLevel = analogRead(LIGHT_SENSOR_PIN);
+    // int light = map(lightLevel, 0, 1023, 0, 100);
+    // if (light > 50) { ... }
+    // ----------- CODE FOR LIGHT SENSOR IF HARDWARE AVAILABLE -----------
 
-    if (light > 50) { 
+    int lightSensorValue = digitalRead(LIGHT_SENSOR_PIN);
+
+    if (lightSensorValue == LOW) {
       Serial.println("Light sensor detected light, no need to change LED state!");
       returnResponse(200, "Light sensor detected light, no need to change LED state!");
       return;
