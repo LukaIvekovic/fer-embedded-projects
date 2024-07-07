@@ -16,11 +16,11 @@ const char* password = "password123";
 WebServer webServer(80);
 
 unsigned long startTime = 0;
-long interval = 5;
+long interval = 5; 
 boolean turnOffSprinklesAfterDuration = false;
 int savedSprinklesDuration = 5;
 
-int checkHumidityAfter = 60 * 1000; // 30 seconds
+int checkHumidityAfter = 1800 * 1000; // 30 minutes
 int lastHumidityCheck = 0;
 
 int HUMIDITY_TOO_LOW = 2450; //2559 je skroz suh

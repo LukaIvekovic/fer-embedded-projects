@@ -99,6 +99,8 @@ void loop() {
 
       } else {
         gateSuccessfulStop(blinkLedPin);
+        
+        digitalWrite(LED_GREEN_PIN, LOW);
       }
 
       delay(delayMilliseconds);
@@ -324,6 +326,7 @@ void gateSuccessfulStop(int blinkLed) {
   blinkCount = 0;
 
   Serial.println("Gate successfully " + gateState + "!");
+  delay(500);
 }
 
 void turnOffAllLeds() {

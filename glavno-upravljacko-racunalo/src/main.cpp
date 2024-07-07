@@ -20,8 +20,8 @@ String sendHTML();
 const char* ap_ssid = "ESP32_WiFi"; // for AP mode
 const char* ap_password = "password123";
 
-const char* ssid = "Homebox-Ivekovic"; // for Station mode (home wifi)
-const char* password = "krunkrun22";
+const char* ssid = "Luka-iPhone"; // for Station mode (home wifi)
+const char* password = "zasirotinju123";
 
 String upravljacPrskalicaApi = "http://192.168.4.4:80/";
 String upravljacOgradomApi = "http://192.168.4.2:80/";
